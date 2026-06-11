@@ -44,7 +44,7 @@ function ModalContent({ params }: ContentProps) {
                     throw new Error("API URL is not configured");
                 }
 
-                const response = await fetch(`${apiUrl}/products/${unwrappedParams.id}`);
+                const response = await fetch(`${apiUrl}/admin/products/${unwrappedParams.id}`);
                 
                 if (!response.ok) {
                     throw new Error(response.status === 404 ? "Produk tidak ditemukan." : "Terjadi kesalahan saat memuat data.");
