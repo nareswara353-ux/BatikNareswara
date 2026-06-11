@@ -122,66 +122,43 @@ export default function AdminPage() {
     setIsSubmittingProduct(true);
     try {
       const form = e.currentTarget;
-      const formData = new FormData(form);
-
-      // --- Supabase Image Upload Logic ---
-      let finalImageUrl = '';
-      const imageFiles = formData.getAll('images') as File[];
-      if (imageFiles.length > 0 && imageFiles[0].size > 0) {
-        const file = imageFiles[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(fileName, file);
-
-        if (uploadError) {
-          throw new Error(`Image upload failed: ${uploadError.message}`);
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('products')
-          .getPublicUrl(fileName);
-
-        finalImageUrl = publicUrl;
-      }
+      const rawFormData = new FormData(form);
 
       // --- Construct form state manually ---
       const productForm = {
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        category: (formData.get('category') as string) || 'Kebaya',
-        originalPrice: formData.get('originalPrice'),
-        discountPrice: formData.get('discountPrice'),
+        title: rawFormData.get('title') as string,
+        description: rawFormData.get('description') as string,
+        category: (rawFormData.get('category') as string) || 'Kebaya',
+        originalPrice: rawFormData.get('originalPrice'),
+        discountPrice: rawFormData.get('discountPrice'),
         variants: [
-          { size: 'S', stock: formData.get('stock_S') },
-          { size: 'M', stock: formData.get('stock_M') },
-          { size: 'L', stock: formData.get('stock_L') },
-          { size: 'XL', stock: formData.get('stock_XL') },
+          { size: 'S', stock: rawFormData.get('stock_S') },
+          { size: 'M', stock: rawFormData.get('stock_M') },
+          { size: 'L', stock: rawFormData.get('stock_L') },
+          { size: 'XL', stock: rawFormData.get('stock_XL') },
         ]
       };
 
-      // ✅ GUNAKAN KODE PAYLOAD BARU INI:
-      const payload = {
-        title: String(productForm.title || ''),
-        description: String(productForm.description || ''),
-        category: String(productForm.category || ''),
-        imageUrl: finalImageUrl,
-        originalPrice: Number(productForm.originalPrice),
-        discountPrice: Number(productForm.discountPrice || 0),
-        variants: productForm.variants.map((v) => ({
-          id: crypto.randomUUID(),
-          size: String(v.size),
-          stock: parseInt((v.stock || 0).toString(), 10) || 0
-        }))
-      };
+      const formData = new FormData();
+      formData.append('Title', String(productForm.title || ''));
+      formData.append('Description', String(productForm.description || ''));
+      formData.append('Category', String(productForm.category || ''));
+      formData.append('OriginalPrice', String(Number(productForm.originalPrice || 0)));
+      formData.append('DiscountPrice', String(Number(productForm.discountPrice || 0)));
+
+      const imageFiles = rawFormData.getAll('images') as File[];
+      if (imageFiles.length > 0 && imageFiles[0].size > 0) {
+        formData.append('ImageFile', imageFiles[0]);
+      }
+
+      productForm.variants.forEach((v, index) => {
+        formData.append(`Variants[${index}].Size`, String(v.size));
+        formData.append(`Variants[${index}].Stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
+      });
 
       const res = await fetch(`${API_URL}/admin/products`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!res.ok) {
