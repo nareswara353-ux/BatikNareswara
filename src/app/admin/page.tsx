@@ -134,15 +134,15 @@ export default function AdminPage() {
         const { error: uploadError } = await supabase.storage
           .from('products')
           .upload(fileName, file);
-        
+
         if (uploadError) {
           throw new Error(`Image upload failed: ${uploadError.message}`);
         }
-        
+
         const { data: { publicUrl } } = supabase.storage
           .from('products')
           .getPublicUrl(fileName);
-          
+
         finalImageUrl = publicUrl;
       }
 
@@ -161,18 +161,29 @@ export default function AdminPage() {
         ]
       };
 
-      // --- Construct the JSON payload safely ---
+      // ✅ GUNAKAN KODE PAYLOAD BARU INI:
       const payload = {
         title: String(productForm.title || ''),
         description: String(productForm.description || ''),
         category: String(productForm.category || ''),
-        imageUrl: finalImageUrl,
         originalPrice: Number(productForm.originalPrice),
         discountPrice: Number(productForm.discountPrice || 0),
-        variants: productForm.variants.map((v) => ({
-          size: String(v.size),
-          stock: parseInt((v.stock || 0).toString(), 10) || 0
-        }))
+
+        // 1. Sesuaikan pengiriman gambar ke bentuk Array agar cocok dengan tabel public.product_images
+        images: finalImageUrl ? [
+          {
+            imageUrl: finalImageUrl,
+            isPrimary: true
+          }
+        ] : [],
+
+        // 2. Kirim varian dengan memastikan nilai default stock aman
+        variants: productForm.variants
+          .filter(v => (parseInt((v.stock || 0).toString(), 10) || 0) > 0) // Hanya kirim ukuran yang stoknya diisi
+          .map((v) => ({
+            size: String(v.size),
+            stock: parseInt((v.stock || 0).toString(), 10) || 0
+          }))
       };
 
       const res = await fetch(`${API_URL}/admin/products`, {
@@ -320,7 +331,7 @@ export default function AdminPage() {
             </form>
           </div>
 
-          
+
 
         </div>
 
