@@ -44,18 +44,34 @@ function ModalContent({ params }: ContentProps) {
                     throw new Error("API URL is not configured");
                 }
 
-                const response = await fetch(`${apiUrl}/admin/products/${unwrappedParams.id}`);
+                let response = await fetch(`${apiUrl}/admin/products`);
+                if (!response.ok) {
+                    response = await fetch(`${apiUrl}/products`);
+                }
                 
                 if (!response.ok) {
                     throw new Error(response.status === 404 ? "Produk tidak ditemukan." : "Terjadi kesalahan saat memuat data.");
                 }
 
-                const result: ApiResponse<Product> = await response.json();
+                const result = await response.json();
+                const data = result.data || result;
                 
-                if (result.success && result.data) {
-                    setProduct(result.data);
+                if (Array.isArray(data)) {
+                    const rawProduct = data.find((p: any) => String(p.id || p.Id) === String(unwrappedParams.id));
+                    if (rawProduct) {
+                        setProduct({
+                            id: rawProduct.id || rawProduct.Id,
+                            title: rawProduct.title,
+                            description: rawProduct.description,
+                            originalPrice: Number(rawProduct.originalPrice || 0),
+                            discountPrice: Number(rawProduct.discountPrice || 0),
+                            primaryImage: rawProduct.imageUrl || rawProduct.image || "/placeholder.jpg"
+                        } as unknown as Product);
+                    } else {
+                        throw new Error("Produk tidak ditemukan.");
+                    }
                 } else {
-                    throw new Error(result.message || "Data produk tidak valid.");
+                    throw new Error("Data produk tidak valid.");
                 }
             } catch (err: any) {
                 if (process.env.NODE_ENV !== "production") {
@@ -213,14 +229,32 @@ function ModalContent({ params }: ContentProps) {
                             <div className="p-4 border-t border-slate-100 bg-white flex gap-3 shrink-0 rounded-b-3xl">
                                 <button
                                     type="button"
-                                    onClick={() => closeModal()}
+                                    onClick={() => {
+                                        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+                                        cart.push({
+                                            id: product.id,
+                                            title: product.title,
+                                            price: product.discountPrice || product.originalPrice || 0,
+                                            image: primaryImageUrl || '/placeholder.jpg',
+                                            quantity: 1
+                                        });
+                                        localStorage.setItem('cart', JSON.stringify(cart));
+                                        alert("Produk berhasil dimasukkan ke keranjang Batik Nareswara!");
+                                        closeModal();
+                                    }}
                                     className="flex-1 border-2 border-slate-300 text-slate-700 rounded-xl py-3 font-bold hover:bg-slate-50 hover:border-slate-400 transition-all active:scale-95 text-sm text-center"
                                 >
                                     + Keranjang
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => closeModal()}
+                                    onClick={() => {
+                                        const phoneNumber = "6285600003750"; 
+                                        const finalPrice = product.discountPrice || product.originalPrice || 0;
+                                        const message = `Halo Batik Nareswara, saya ingin membeli produk *${product.title}* seharga *Rp ${finalPrice.toLocaleString("id-ID")}*.`;
+                                        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+                                        closeModal();
+                                    }}
                                     className="flex-1 bg-[#D2691E] text-white rounded-xl py-3 font-bold hover:bg-[#b85c1a] shadow-md hover:shadow-lg transition-all active:scale-95 text-sm text-center"
                                 >
                                     Beli Langsung

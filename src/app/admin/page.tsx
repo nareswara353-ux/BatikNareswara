@@ -203,9 +203,16 @@ export default function AdminPage() {
     }
   };
 
-  const getTotalStock = (variants?: ProductVariant[]) => {
-    if (!variants || !Array.isArray(variants)) return 0;
-    return variants.reduce((acc, v) => acc + (v.stock || 0), 0);
+  // ✅ KODE BARU: Kebal terhadap huruf besar/kecil dari .NET
+  const getTotalStock = (variants: any) => {
+    // Antisipasi jika .NET memulangkan nama 'Variants' (V besar) atau 'variants' (v kecil)
+    const actualVariants = variants || [];
+
+    return actualVariants.reduce((sum: number, v: any) => {
+      // Ambil nilai dari 'stock' atau 'Stock', jika dua-duanya gak ada pakai 0
+      const stockValue = v.stock !== undefined ? v.stock : (v.Stock !== undefined ? v.Stock : 0);
+      return sum + Number(stockValue);
+    }, 0);
   };
 
   const formatRupiah = (value: number) => {
