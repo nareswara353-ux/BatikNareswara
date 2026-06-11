@@ -170,7 +170,7 @@ export default function AdminPage() {
         originalPrice: Number(productForm.originalPrice),
         discountPrice: Number(productForm.discountPrice || 0),
         variants: productForm.variants.map((v) => ({
-          id: crypto.randomUUID(), // 👈 FIX WAJIB: .NET butuh ID Varian berupa UUID biar gak 400 Bad Request
+          id: crypto.randomUUID(),
           size: String(v.size),
           stock: parseInt((v.stock || 0).toString(), 10) || 0
         }))
