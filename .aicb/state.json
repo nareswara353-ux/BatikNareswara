@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "thoughts": [],
+  "pinnedFiles": [
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\README.md",
+      "pinnedBy": "auto:spec",
+      "note": "Project README",
+      "pinnedAt": 1781184180462,
+      "auto": "spec",
+      "role": "spec"
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\.clerk\\.tmp\\README.md",
+      "pinnedBy": "auto:spec",
+      "note": "Project README (.clerk\\.tmp)",
+      "pinnedAt": 1781184180463,
+      "auto": "spec",
+      "role": "spec"
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\src\\app\\page.tsx",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781184475582,
+      "auto": "dwell",
+      "expiresAt": 1781188075582
+    }
+  ],
+  "skills": [],
+  "updatedAt": 1781184475582
+}

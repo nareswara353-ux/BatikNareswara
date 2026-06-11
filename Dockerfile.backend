@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Salin semua kode
+COPY . .
+
+# 🔥 FIX: Matikan PublishAot menjadi false agar EF Core bisa membangun model database dengan lancar
+RUN CSPROJ_PATH=$(find . -name "*.csproj" | head -n 1) && \
+    echo "🎯 Mengeksekusi build untuk proyek: $CSPROJ_PATH" && \
+    dotnet restore "$CSPROJ_PATH" && \
+    dotnet publish "$CSPROJ_PATH" -c Release -o /app/publish /p:PublishAot=false
+
+# Menggunakan runtime ASP.NET 10 standar (mendukung JIT & EF Core Reflection)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+
+# Menjalankan file .dll hasil compile JIT secara otomatis
+CMD ["sh", "-c", "dotnet /app/$(basename $(ls *.runtimeconfig.json) .runtimeconfig.json).dll"]

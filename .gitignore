@@ -1,0 +1,32 @@
+# NEXT.JS / NODE SPECIFIC
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.production
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# .NET 8 / C# SPECIFIC
+bin/
+obj/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+appsettings.Development.json
+
+# OS & MISC SPECIFIC
+.DS_Store
+Thumbs.db
+
+# clerk configuration (can include secrets)
+/.clerk/

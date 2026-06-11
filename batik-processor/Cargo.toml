@@ -1,0 +1,27 @@
+[package]
+name = "batik-processor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# 🔥 FIX UTAMA: Mengaktifkan fitur "multipart" agar Axum bisa membaca form data/gambar
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+image = "0.24"
+webp = "0.3"
+bytes = "1"
+futures = "0.3"
+thiserror = "1"
+serde_json = "1"
+tracing-log = "0.2"
+multer = "3"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

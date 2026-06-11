@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(ls)",
+      "Exec(Get-ChildItem)",
+      "Exec(Select-Object)"
+    ]
+  }
+}

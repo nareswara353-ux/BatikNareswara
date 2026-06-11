@@ -1,0 +1,58 @@
+services:
+  batik-processor:
+    container_name: batik-processor
+    build:
+      context: ./batik-processor
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - batik-network
+    restart: unless-stopped
+
+  backend-service:
+    container_name: batik-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000" # 🔥 FIX: Samakan port luar dan dalam kontainer menjadi 5000
+    environment:
+      - RustService__Url=http://batik-processor:8080
+      - ASPNETCORE_URLS=http://+:5000 # 🔥 FIX: Paksa kestrel jalan di port 5000
+    depends_on:
+      - batik-processor
+    networks:
+      - batik-network
+    restart: unless-stopped
+
+  frontend-service:
+    container_name: batik-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bmV1dHJhbC1jaWNhZGEtMy5jbGVyay5hY2NvdW50cy5kZXYk
+        # 🔥 FIX UTAMA: Arahkan browser langsung ke port publik .NET (5000)
+        - NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api
+        - NEXT_PUBLIC_SUPABASE_URL=https://btdfzxttyknywewfkayw.supabase.co
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZGZ6eHR0eWtueXdld2ZrYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODgzODMsImV4cCI6MjA5NTc2NDM4M30.zo98XPhUDS4tVHi446g6CBqfxXjDZyqQ6sst-By3hoQ
+    ports:
+      - "3000:3000"
+    environment:
+      - INTERNAL_BACKEND_API_URL=http://batik-backend:5000/api
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bmV1dHJhbC1jaWNhZGEtMy5jbGVyay5hY2NvdW50cy5kZXYk
+      - CLERK_SECRET_KEY=sk_test_SYmhpFstPlqoDFzAgisd6k2VeSBxKgQNYzWLRkzVTJ
+      # 🔥 FIX UTAMA: Sesuaikan juga di lingkungan runtime browser
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api
+      - NEXT_PUBLIC_SUPABASE_URL=https://btdfzxttyknywewfkayw.supabase.co
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZGZ6eHR0eWtueXdld2ZrYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODgzODMsImV4cCI6MjA5NTc2NDM4M30.zo98XPhUDS4tVHi446g6CBqfxXjDZyqQ6sst-By3hoQ
+    depends_on:
+      - backend-service
+    networks:
+      - batik-network
+    restart: unless-stopped
+
+networks:
+  batik-network:
+    driver: bridge

@@ -1,0 +1,28 @@
+# Node / Frontend Garbage
+node_modules
+.next
+out
+build
+npm-debug.log
+
+# .NET / Backend Garbage
+bin/
+obj/
+.vs/
+.vscode/
+
+# Rust Garbage
+batik-processor/target/
+
+# System Garbage
+.git
+.gitignore
+DS_Store
+Thumbs.db
+
+# 🔥 FIX UTAMA: Blokir semua file .env lokal agar tidak merusak build di dalam Docker
+.env
+.env.local
+.env.production
+.env.development
+*.env*
