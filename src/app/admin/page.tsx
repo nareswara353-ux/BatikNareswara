@@ -376,7 +376,7 @@ export default function AdminPage() {
                         {product.discountPrice > 0 ? formatRupiah(product.discountPrice) : '-'}
                       </td>
                       <td className="py-4 px-6 text-sm text-slate-500 text-center font-medium">
-                        {getTotalStock(product.variants)}
+                        {getTotalStock(product.variants || product.Variants)}
                       </td>
                       <td className="py-4 px-6 text-sm text-right">
                         <button
