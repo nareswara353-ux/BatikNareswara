@@ -26,10 +26,18 @@ export default function StandaloneProductPage() {
                 
                 // Since there is no single product endpoint in the current backend snippets, 
                 // we find the product from the list.
-                const foundProduct = data.find((p: any) => p.id === id);
-                if (!foundProduct) throw new Error("Produk tidak ditemukan");
+                const rawProduct = data.find((p: any) => String(p.id || p.Id) === String(id));
+                if (!rawProduct) throw new Error("Produk tidak ditemukan");
                 
-                setProduct(foundProduct);
+                const mappedProduct = {
+                    ...rawProduct,
+                    id: rawProduct.id || rawProduct.Id,
+                    price: rawProduct.discountPrice || rawProduct.originalPrice || rawProduct.price || 0,
+                    image: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || '/placeholder.jpg',
+                    primaryImage: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || '/placeholder.jpg'
+                };
+                
+                setProduct(mappedProduct as any);
             } catch (err: any) {
                 console.error(err);
                 setError(err.message);
@@ -104,14 +112,30 @@ export default function StandaloneProductPage() {
                         <div className="mt-auto pt-8 border-t border-slate-100 flex gap-4">
                             <button
                                 type="button"
-                                onClick={() => alert("Masuk Keranjang!")}
+                                onClick={() => {
+                                    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+                                    cart.push({
+                                        id: product.id,
+                                        title: product.title,
+                                        price: (product as any).price || activePrice,
+                                        selectedSize: "All Size",
+                                        image: (product as any).image || product.primaryImage
+                                    });
+                                    localStorage.setItem('cart', JSON.stringify(cart));
+                                    alert("Produk berhasil dimasukkan ke keranjang Batik Nareswara!");
+                                }}
                                 className="flex-1 border-2 border-slate-300 text-slate-700 rounded-xl py-4 font-bold hover:bg-slate-50 hover:border-slate-400 transition-all active:scale-95 text-center"
                             >
                                 + Keranjang
                             </button>
                             <button
                                 type="button"
-                                onClick={() => alert("Beli Langsung!")}
+                                onClick={() => {
+                                    const phoneNumber = "6285600003750";
+                                    const price = (product as any).price || activePrice;
+                                    const message = `Halo Batik Nareswara, saya ingin membeli produk *${product.title}* dengan ukuran *All Size* seharga *Rp ${price.toLocaleString("id-ID")}*.`;
+                                    window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+                                }}
                                 className="flex-1 bg-[#D2691E] text-white rounded-xl py-4 font-bold hover:bg-[#b85c1a] shadow-md hover:shadow-lg transition-all active:scale-95 text-center"
                             >
                                 Beli Langsung
