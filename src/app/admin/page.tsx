@@ -166,24 +166,14 @@ export default function AdminPage() {
         title: String(productForm.title || ''),
         description: String(productForm.description || ''),
         category: String(productForm.category || ''),
+        imageUrl: finalImageUrl,
         originalPrice: Number(productForm.originalPrice),
         discountPrice: Number(productForm.discountPrice || 0),
-
-        // 1. Sesuaikan pengiriman gambar ke bentuk Array agar cocok dengan tabel public.product_images
-        images: finalImageUrl ? [
-          {
-            imageUrl: finalImageUrl,
-            isPrimary: true
-          }
-        ] : [],
-
-        // 2. Kirim varian dengan memastikan nilai default stock aman
-        variants: productForm.variants
-          .filter(v => (parseInt((v.stock || 0).toString(), 10) || 0) > 0) // Hanya kirim ukuran yang stoknya diisi
-          .map((v) => ({
-            size: String(v.size),
-            stock: parseInt((v.stock || 0).toString(), 10) || 0
-          }))
+        variants: productForm.variants.map((v) => ({
+          id: crypto.randomUUID(), // 👈 FIX WAJIB: .NET butuh ID Varian berupa UUID biar gak 400 Bad Request
+          size: String(v.size),
+          stock: parseInt((v.stock || 0).toString(), 10) || 0
+        }))
       };
 
       const res = await fetch(`${API_URL}/admin/products`, {
