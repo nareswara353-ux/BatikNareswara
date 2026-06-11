@@ -17,8 +17,15 @@
       "pinnedAt": 1781184180463,
       "auto": "spec",
       "role": "spec"
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\docker-compose.yml",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781185839309,
+      "auto": "recent-edit",
+      "expiresAt": 1781189439309
     }
   ],
   "skills": [],
-  "updatedAt": 1781185006346
+  "updatedAt": 1781185839309
 }

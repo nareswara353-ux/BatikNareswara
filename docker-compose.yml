@@ -19,7 +19,10 @@ services:
       - "5000:5000" # 🔥 FIX: Samakan port luar dan dalam kontainer menjadi 5000
     environment:
       - RustService__Url=http://batik-processor:8080
-      - ASPNETCORE_URLS=http://+:5000 # 🔥 FIX: Paksa kestrel jalan di port 5000
+      - ASPNETCORE_URLS=http://+:5000
+      - Supabase__Url=https://btdfzxttyknywewfkayw.supabase.co
+      - Supabase__ApiKey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZGZ6eHR0eWtueXdld2ZrYXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxODgzODMsImV4cCI6MjA5NTc2NDM4M30.zo98XPhUDS4tVHi446g6CBqfxXjDZyqQ6sst-By3hoQ
+      - Supabase__BucketName=gambarBatik
     depends_on:
       - batik-processor
     networks:
