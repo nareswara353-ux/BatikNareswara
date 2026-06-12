@@ -33,45 +33,47 @@ function ModalContent({ params }: ContentProps) {
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(true);
 
+    // ✨ State baru untuk memicu pop-up centang hijau premium
+    const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+
     useEffect(() => {
         const fetchProduct = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                
+
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-                if (!apiUrl) {
-                    throw new Error("API URL is not configured");
+
+                // 🔥 FIX JALUR DATA: Ambil daftar list produk global untuk menghindari 404 produk tunggal
+                const response = await fetch(`${apiUrl}/products`);
+
+                if (!response.ok) {
+                    throw new Error("Terjadi kesalahan saat memuat data katalog.");
                 }
 
-                let response = await fetch(`${apiUrl}/admin/products`);
-                if (!response.ok) {
-                    response = await fetch(`${apiUrl}/products`);
-                }
-                
-                if (!response.ok) {
-                    throw new Error(response.status === 404 ? "Produk tidak ditemukan." : "Terjadi kesalahan saat memuat data.");
-                }
+                const data = await response.json();
 
-                const result = await response.json();
-                const data = result.data || result;
-                
-                if (Array.isArray(data)) {
-                    const rawProduct = data.find((p: any) => String(p.id || p.Id) === String(unwrappedParams.id));
-                    if (rawProduct) {
-                        setProduct({
-                            id: rawProduct.id || rawProduct.Id,
-                            title: rawProduct.title,
-                            description: rawProduct.description,
-                            originalPrice: Number(rawProduct.originalPrice || 0),
-                            discountPrice: Number(rawProduct.discountPrice || 0),
-                            primaryImage: rawProduct.imageUrl || rawProduct.image || "/placeholder.jpg"
-                        } as unknown as Product);
-                    } else {
-                        throw new Error("Produk tidak ditemukan.");
-                    }
+                // Cari data array mentah atau jika dibungkus ApiResponse objek
+                const productList = Array.isArray(data) ? data : (data.data || []);
+
+                // Cari produk yang ID-nya cocok dengan parameter URL aman dari Huruf Besar/Kecil ID
+                const foundProduct = productList.find((p: any) =>
+                    String(p.id || p.Id || p.id) === String(unwrappedParams.id)
+                );
+
+                if (foundProduct) {
+                    // Mapping data super aman biar Next.js Image gak melontarkan eror 400 loop lagi
+                    setProduct({
+                        ...foundProduct,
+                        id: foundProduct.id || foundProduct.Id,
+                        title: foundProduct.title || foundProduct.Title,
+                        description: foundProduct.description || foundProduct.Description,
+                        originalPrice: Number(foundProduct.originalPrice || 0),
+                        discountPrice: Number(foundProduct.discountPrice || 0),
+                        imageUrl: foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg"
+                    });
                 } else {
-                    throw new Error("Data produk tidak valid.");
+                    throw new Error("Produk tidak ditemukan di dalam sistem katalog.");
                 }
             } catch (err: any) {
                 if (process.env.NODE_ENV !== "production") {
@@ -95,59 +97,50 @@ function ModalContent({ params }: ContentProps) {
         }, 300);
     };
 
-    const renderLoadingState = () => (
-        <div className="p-6 flex-1 flex flex-col gap-6 w-full animate-pulse">
-            <div className="w-full max-w-sm mx-auto aspect-[3/4] rounded-2xl bg-slate-200"></div>
-            <div className="space-y-4 w-full">
-                <div className="h-8 bg-slate-200 rounded-lg w-3/4"></div>
-                <div className="h-6 bg-slate-200 rounded-lg w-1/3"></div>
-            </div>
-            <div className="space-y-3 mt-4">
-                <div className="h-4 bg-slate-200 rounded w-full"></div>
-                <div className="h-4 bg-slate-200 rounded w-full"></div>
-                <div className="h-4 bg-slate-200 rounded w-4/5"></div>
-            </div>
-        </div>
-    );
+    // ✨ FUNGSI NYATA: Masukkan ke Keranjang LocalStorage
+    const handleAddToCart = () => {
+        if (!product) return;
 
-    const renderErrorState = () => (
-        <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800">Gagal Memuat Produk</h3>
-            <p className="text-slate-500">{error}</p>
-            <button 
-                onClick={closeModal}
-                className="mt-4 px-6 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
-            >
-                Kembali
-            </button>
-        </div>
-    );
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const finalPrice = product.discountPrice > 0 ? product.discountPrice : product.originalPrice;
 
-    const renderEmptyState = () => (
-        <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4">
-            <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-2">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800">Produk Tidak Ditemukan</h3>
-            <p className="text-slate-500">Maaf, produk yang Anda cari mungkin telah dihapus atau tidak tersedia.</p>
-            <button 
-                onClick={closeModal}
-                className="mt-4 px-6 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
-            >
-                Tutup
-            </button>
-        </div>
-    );
+        const itemGambar = product.imageUrl || "/placeholder.jpg";
+
+        cart.push({
+            id: product.id,
+            title: product.title,
+            price: finalPrice,
+            image: itemGambar,
+            quantity: 1
+        });
+
+        localStorage.setItem("cart", JSON.stringify(cart));
+
+        // Picu animasi centang hijau muncul
+        setShowSuccessToast(true);
+
+        // Otomatis tutup modal setelah 1.8 detik kemesraan animasi centang
+        setTimeout(() => {
+            setShowSuccessToast(false);
+            closeModal();
+        }, 1800);
+    };
+
+    // ✨ FUNGSI NYATA: Redirect Pesan Otomatis ke WhatsApp Toko Lu
+    const handleBuyNow = () => {
+        if (!product) return;
+
+        const phoneNumber = "6285600003750"; // Nomor WA Batik Nareswara lu
+        const finalPrice = product.discountPrice > 0 ? product.discountPrice : product.originalPrice;
+
+        const message = `Halo *Batik Nareswara*, saya ingin membeli produk premium *${product.title}* seharga *Rp ${finalPrice.toLocaleString("id-ID")}*. Apakah produk ini ready?`;
+
+        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
+        closeModal();
+    };
 
     const activePrice = product ? (product.discountPrice || product.originalPrice || 0) : 0;
-    const primaryImageUrl = product ? (product.primaryImage ? (Array.isArray(product.primaryImage) ? product.primaryImage[0] : product.primaryImage) : (product.images && product.images.length > 0 ? product.images[0] : "")) : "";
+    const primaryImageUrl = product ? (product.imageUrl || "/placeholder.jpg") : "/placeholder.jpg";
 
     return (
         <AnimatePresence>
@@ -162,6 +155,25 @@ function ModalContent({ params }: ContentProps) {
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={closeModal}
                     />
+
+                    {/* ✨ POP-UP CENTANG HIJAU PREMIUM (TOAST ANIMATION) */}
+                    <AnimatePresence>
+                        {showSuccessToast && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                                className="absolute top-10 z-[300] bg-emerald-500 text-white font-semibold px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-400"
+                            >
+                                <div className="bg-white text-emerald-500 rounded-full p-1 flex items-center justify-center shadow-inner">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <span>Berhasil dimasukkan ke keranjang Batik Nareswara!</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Modal Sheet */}
                     <motion.div
@@ -183,27 +195,29 @@ function ModalContent({ params }: ContentProps) {
 
                         {/* Body Content */}
                         {isLoading ? (
-                            renderLoadingState()
+                            <div className="p-6 flex-1 flex flex-col gap-6 w-full animate-pulse">
+                                <div className="w-full max-w-sm mx-auto aspect-[3/4] rounded-2xl bg-slate-200"></div>
+                            </div>
                         ) : error ? (
-                            renderErrorState()
+                            <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4">
+                                <h3 className="text-xl font-bold text-slate-800">Gagal Memuat Produk</h3>
+                                <p className="text-slate-500">{error}</p>
+                            </div>
                         ) : !product ? (
-                            renderEmptyState()
+                            <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4">
+                                <h3 className="text-xl font-bold text-slate-800">Produk Tidak Ditemukan</h3>
+                            </div>
                         ) : (
                             <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-8 no-scrollbar">
                                 <div className="w-full max-w-sm mx-auto aspect-[3/4] relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
-                                    {primaryImageUrl ? (
-                                        <Image
-                                            src={primaryImageUrl}
-                                            alt={product.title || "Produk Batik"}
-                                            fill
-                                            className="object-cover"
-                                            priority
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                            <span>Tidak ada gambar</span>
-                                        </div>
-                                    )}
+                                    <Image
+                                        src={primaryImageUrl}
+                                        alt={product.title}
+                                        fill
+                                        className="object-cover"
+                                        priority
+                                        unoptimized={true} // Matikan Next Optimization biar ga loop eror 400 di localhost
+                                    />
                                 </div>
 
                                 <div>
@@ -229,32 +243,14 @@ function ModalContent({ params }: ContentProps) {
                             <div className="p-4 border-t border-slate-100 bg-white flex gap-3 shrink-0 rounded-b-3xl">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-                                        cart.push({
-                                            id: product.id,
-                                            title: product.title,
-                                            price: product.discountPrice || product.originalPrice || 0,
-                                            image: primaryImageUrl || '/placeholder.jpg',
-                                            quantity: 1
-                                        });
-                                        localStorage.setItem('cart', JSON.stringify(cart));
-                                        alert("Produk berhasil dimasukkan ke keranjang Batik Nareswara!");
-                                        closeModal();
-                                    }}
+                                    onClick={handleAddToCart}
                                     className="flex-1 border-2 border-slate-300 text-slate-700 rounded-xl py-3 font-bold hover:bg-slate-50 hover:border-slate-400 transition-all active:scale-95 text-sm text-center"
                                 >
                                     + Keranjang
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        const phoneNumber = "6285600003750"; 
-                                        const finalPrice = product.discountPrice || product.originalPrice || 0;
-                                        const message = `Halo Batik Nareswara, saya ingin membeli produk *${product.title}* seharga *Rp ${finalPrice.toLocaleString("id-ID")}*.`;
-                                        window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-                                        closeModal();
-                                    }}
+                                    onClick={handleBuyNow}
                                     className="flex-1 bg-[#D2691E] text-white rounded-xl py-3 font-bold hover:bg-[#b85c1a] shadow-md hover:shadow-lg transition-all active:scale-95 text-sm text-center"
                                 >
                                     Beli Langsung

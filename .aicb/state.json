@@ -6,7 +6,7 @@
       "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\README.md",
       "pinnedBy": "auto:spec",
       "note": "Project README",
-      "pinnedAt": 1781243836151,
+      "pinnedAt": 1781245444958,
       "auto": "spec",
       "role": "spec"
     },
@@ -14,7 +14,7 @@
       "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\.clerk\\.tmp\\README.md",
       "pinnedBy": "auto:spec",
       "note": "Project README (.clerk\\.tmp)",
-      "pinnedAt": 1781243836151,
+      "pinnedAt": 1781245444958,
       "auto": "spec",
       "role": "spec"
     },
@@ -24,8 +24,15 @@
       "pinnedAt": 1781244132717,
       "auto": "dwell",
       "expiresAt": 1781247732717
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\src\\app\\@modal\\(.)product\\[id]\\ProductModalContent.tsx",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781245549295,
+      "auto": "recent-edit",
+      "expiresAt": 1781249149294
     }
   ],
   "skills": [],
-  "updatedAt": 1781244738831
+  "updatedAt": 1781245549295
 }
