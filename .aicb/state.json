@@ -19,20 +19,13 @@
       "role": "spec"
     },
     {
-      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\src\\app\\admin\\page.tsx",
-      "pinnedBy": "auto:editor",
-      "pinnedAt": 1781244132717,
-      "auto": "dwell",
-      "expiresAt": 1781247732717
-    },
-    {
       "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\backend\\Program.cs",
       "pinnedBy": "auto:editor",
-      "pinnedAt": 1781245963655,
-      "auto": "recent-edit",
-      "expiresAt": 1781249563655
+      "pinnedAt": 1781246249617,
+      "auto": "dwell",
+      "expiresAt": 1781249849617
     }
   ],
   "skills": [],
-  "updatedAt": 1781245963655
+  "updatedAt": 1781247292944
 }

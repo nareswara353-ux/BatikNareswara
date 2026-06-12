@@ -79,7 +79,7 @@ function DashboardContent() {
           ...product,
           id: product.id || Math.random().toString(),
           title: product.title || "Produk Tanpa Nama",
-          primaryImage: product.primaryImage || "/images/placeholder-batik.png",
+          primaryImage: product.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==",
           originalPrice: Number(product.originalPrice) || 0,
           discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
         })) as Product[];

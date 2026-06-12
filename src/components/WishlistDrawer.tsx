@@ -1,6 +1,6 @@
 // src/components/WishlistDrawer.tsx
 import React from "react";
-import Image from "next/image";
+// Native <img> used to bypass Next.js Image optimization 400 errors
 import { Product } from "@/types/dashboard";
 
 interface WishlistDrawerProps {
@@ -59,9 +59,14 @@ export default function WishlistDrawer({
                   onClick={() => { onClose(); onProductClick(product); }}
                 >
                   <div className="relative w-16 h-20 rounded-xl overflow-hidden bg-slate-200 shrink-0">
-                    {product.primaryImage && (
-                      <Image src={product.primaryImage} alt={product.title} fill className="object-cover" />
-                    )}
+                    <img
+                      src={product.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
+                      alt={product.title || "Product Image"}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                      }}
+                    />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-slate-800 line-clamp-1">{product.title}</h4>

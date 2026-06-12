@@ -1,4 +1,4 @@
-import Image from "next/image";
+// Native <img> used to bypass Next.js Image optimization 400 errors
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -65,7 +65,14 @@ export default function CartDrawer({
                             return (
                                 <div key={index} className="flex gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                     <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-slate-200 shrink-0">
-                                        {item.product.primaryImage && <Image src={item.product.primaryImage} alt={item.product.title} fill className="object-cover" />}
+                                        <img
+                                            src={item.product.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
+                                            alt={item.product.title || "Product Image"}
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                                            }}
+                                        />
                                     </div>
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div>

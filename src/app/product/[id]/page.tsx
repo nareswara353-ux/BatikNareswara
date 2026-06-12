@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
+// Native <img> used to bypass Next.js Image optimization 400 errors
 import { useParams } from "next/navigation";
 import { Product } from "@/types/dashboard";
 
@@ -33,8 +33,8 @@ export default function StandaloneProductPage() {
                     ...rawProduct,
                     id: rawProduct.id || rawProduct.Id,
                     price: rawProduct.discountPrice || rawProduct.originalPrice || rawProduct.price || 0,
-                    image: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || '/placeholder.jpg',
-                    primaryImage: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || '/placeholder.jpg'
+                    image: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==",
+                    primaryImage: rawProduct.imageUrl || rawProduct.image || rawProduct.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="
                 };
                 
                 setProduct(mappedProduct as any);
@@ -85,11 +85,13 @@ export default function StandaloneProductPage() {
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row">
                     <div className="md:w-1/2 relative aspect-[3/4] bg-slate-100">
                         {product.primaryImage && (
-                            <Image
+                            <img
                                 src={product.primaryImage}
-                                alt={product.title}
-                                fill
-                                className="object-cover"
+                                alt={product.title || "Product Image"}
+                                className="absolute inset-0 w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                                }}
                             />
                         )}
                     </div>

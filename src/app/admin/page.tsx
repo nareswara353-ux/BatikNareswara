@@ -3,7 +3,7 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import Image from "next/image";
+// Native <img> tags are used throughout to bypass Next.js Image optimization 400 errors
 
 // Setup Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -68,7 +68,9 @@ export default function AdminPage() {
         throw new Error(`Failed to fetch products: ${res.statusText}`);
       }
       const data = await res.json();
-      setProducts(data);
+      // Defensive: handle both raw array and { data: [...] } wrapper from .NET
+      const parsed = Array.isArray(data) ? data : (data?.data || data?.$values || []);
+      setProducts(Array.isArray(parsed) ? parsed : []);
     } catch (err: any) {
       // 🚨 KUNCI UTAMA: Gunakan console.warn agar development overlay tidak muncul (bukan console.error)
       console.warn("Server offline, menggunakan data simulasi Batik Nareswara.", err.message);
@@ -207,13 +209,13 @@ export default function AdminPage() {
   const getTotalStock = (product: any) => {
     if (!product) return 0;
     // Scan all possible variations returned by .NET Entity Framework
-    const actualVariants = product.variants || 
-                           product.Variants || 
-                           product.productVariants || 
-                           product.ProductVariants || 
-                           product.product_variants || 
-                           [];
-                           
+    const actualVariants = product.variants ||
+      product.Variants ||
+      product.productVariants ||
+      product.ProductVariants ||
+      product.product_variants ||
+      [];
+
     return actualVariants.reduce((sum: number, v: any) => {
       const stockValue = v.stock !== undefined ? v.stock : (v.Stock !== undefined ? v.Stock : 0);
       return sum + Number(stockValue);
@@ -233,11 +235,10 @@ export default function AdminPage() {
         <header className="flex flex-col md:flex-row justify-between items-center border-b border-slate-200 pb-6 gap-4">
           <div className="flex items-center">
             <div className="relative w-12 h-12 rounded-full mr-4 shadow-sm overflow-hidden bg-slate-200 border border-slate-300">
-              <Image
+              <img
                 src="/BatikNareswara Profile.jpg"
                 alt="Batik Nareswara Profile"
-                fill
-                className="object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iOCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrIE5hcmVzd2FyYTwvdGV4dD48L3N2Zz4=";
                 }}
@@ -359,17 +360,14 @@ export default function AdminPage() {
                     <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                       {/* 📸 KOLOM GAMBAR PRODUK BARU (ANTI-CRASH) */}
                       <td className="py-4 px-6 whitespace-nowrap">
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-sm">
-                          <Image
-                            // Menggunakan fallback berlapis
-                            src={product.imageUrl || product.image || "/api/placeholder/150/150"}
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+                          <img
+                            src={product.imageUrl || product.image || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
                             alt={product.title || "Gambar Produk"}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
+                            className="w-full h-full object-cover"
                             onError={(e) => {
-                              // Trik terakhir kalau URL gambar error
-                              e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iOCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrIE5hcmVzd2FyYTwvdGV4dD48L3N2Zz4=";
+                              // Jika link gambar dari Supabase/Unsplash rusak, langsung suntik SVG internal tanpa request HTTP
+                              e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
                             }}
                           />
                         </div>

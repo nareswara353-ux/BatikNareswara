@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+// Native <img> used to bypass Next.js Image optimization 400 errors
 import { motion } from "framer-motion";
 import { Product } from "@/types/dashboard";
 
@@ -35,16 +35,15 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         >
             {/* Area Foto Produk */}
             <div className="relative w-full aspect-[3/4] bg-slate-100 overflow-hidden">
-                {product.primaryImage && (
-                    <Image
-                        src={product.primaryImage}
-                        alt={product.title}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
-                        // ⚡ Tambah ini biar performa gambar kasta SSS di HP maupun Desktop
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                )}
+                <img
+                    src={product.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
+                    alt={product.title || "Product Image"}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                    }}
+                />
 
                 {/* Badge diskon dengan Framer Motion */}
                 {product.discountPrice && (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import Image from "next/image";
+// Native <img> used to bypass Next.js Image optimization 400 errors
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -72,7 +72,7 @@ function ModalContent({ params }: ContentProps) {
                         description: String(foundProduct.description || foundProduct.Description || ""),
                         originalPrice: Number(foundProduct.originalPrice || foundProduct.OriginalPrice || 0),
                         discountPrice: Number(foundProduct.discountPrice || foundProduct.DiscountPrice || 0),
-                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg")
+                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || foundProduct.primaryImage || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==")
                     });
                 } else {
                     throw new Error("Produk tidak ditemukan di dalam sistem katalog.");
@@ -138,7 +138,7 @@ function ModalContent({ params }: ContentProps) {
     };
 
     const activePrice = getFinalPrice();
-    const primaryImageUrl = product ? product.imageUrl : "/placeholder.jpg";
+    const primaryImageUrl = product ? product.imageUrl : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
 
     return (
         <AnimatePresence>
@@ -207,13 +207,13 @@ function ModalContent({ params }: ContentProps) {
                         ) : (
                             <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-8 no-scrollbar">
                                 <div className="w-full max-w-sm mx-auto aspect-[3/4] relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
-                                    <Image
+                                    <img
                                         src={primaryImageUrl}
-                                        alt={product.title}
-                                        fill
-                                        className="object-cover"
-                                        priority
-                                        unoptimized={true}
+                                        alt={product.title || "Product Image"}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                                        }}
                                     />
                                 </div>
 
