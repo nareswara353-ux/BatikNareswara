@@ -4,7 +4,16 @@ import React, { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Product } from "@/types/dashboard";
+
+// ✅ 1. BIKIN TIPE DATA LOKAL BIAR TYPESCRIPT GAK PROTES LAGI
+interface LocalProduct {
+    id: string;
+    title: string;
+    description: string;
+    originalPrice: number;
+    discountPrice: number;
+    imageUrl: string;
+}
 
 export interface ApiResponse<T> {
     success: boolean;
@@ -28,12 +37,11 @@ function ModalContent({ params }: ContentProps) {
     const router = useRouter();
     const unwrappedParams = React.use(params);
 
-    const [product, setProduct] = useState<Product | null>(null);
+    // Gunakan Tipe Data Lokal yang baru kita buat
+    const [product, setProduct] = useState<LocalProduct | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(true);
-
-    // ✨ State baru untuk memicu pop-up centang hijau premium
     const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
 
     useEffect(() => {
@@ -43,8 +51,6 @@ function ModalContent({ params }: ContentProps) {
                 setError(null);
 
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
-                // 🔥 FIX JALUR DATA: Ambil daftar list produk global untuk menghindari 404 produk tunggal
                 const response = await fetch(`${apiUrl}/products`);
 
                 if (!response.ok) {
@@ -52,33 +58,26 @@ function ModalContent({ params }: ContentProps) {
                 }
 
                 const data = await response.json();
-
-                // Cari data array mentah atau jika dibungkus ApiResponse objek
                 const productList = Array.isArray(data) ? data : (data.data || []);
 
-                // Cari produk yang ID-nya cocok dengan parameter URL aman dari Huruf Besar/Kecil ID
                 const foundProduct = productList.find((p: any) =>
-                    String(p.id || p.Id || p.id) === String(unwrappedParams.id)
+                    String(p.id || p.Id) === String(unwrappedParams.id)
                 );
 
                 if (foundProduct) {
-                    // Mapping data super aman biar Next.js Image gak melontarkan eror 400 loop lagi
+                    // ✅ FORCE MAPPING: Paksa konversi tipe data biar ga ada nilai 'null' atau properti hilang
                     setProduct({
-                        ...foundProduct,
-                        id: foundProduct.id || foundProduct.Id,
-                        title: foundProduct.title || foundProduct.Title,
-                        description: foundProduct.description || foundProduct.Description,
-                        originalPrice: Number(foundProduct.originalPrice || 0),
-                        discountPrice: Number(foundProduct.discountPrice || 0),
-                        imageUrl: foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg"
+                        id: String(foundProduct.id || foundProduct.Id || ""),
+                        title: String(foundProduct.title || foundProduct.Title || "Produk Batik"),
+                        description: String(foundProduct.description || foundProduct.Description || ""),
+                        originalPrice: Number(foundProduct.originalPrice || foundProduct.OriginalPrice || 0),
+                        discountPrice: Number(foundProduct.discountPrice || foundProduct.DiscountPrice || 0),
+                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg")
                     });
                 } else {
                     throw new Error("Produk tidak ditemukan di dalam sistem katalog.");
                 }
             } catch (err: any) {
-                if (process.env.NODE_ENV !== "production") {
-                    console.error("[ProductFetchError]:", err);
-                }
                 setError(err.message || "Terjadi kesalahan yang tidak terduga.");
             } finally {
                 setIsLoading(false);
@@ -97,41 +96,40 @@ function ModalContent({ params }: ContentProps) {
         }, 300);
     };
 
-    // ✨ FUNGSI NYATA: Masukkan ke Keranjang LocalStorage
+    // ✅ ANTISIPASI NULL: Ambil harga diskon atau original dengan fallback angka 0 murni
+    const getFinalPrice = () => {
+        if (!product) return 0;
+        return product.discountPrice > 0 ? product.discountPrice : product.originalPrice;
+    };
+
     const handleAddToCart = () => {
         if (!product) return;
 
         const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const finalPrice = product.discountPrice > 0 ? product.discountPrice : product.originalPrice;
-
-        const itemGambar = product.imageUrl || "/placeholder.jpg";
+        const finalPrice = getFinalPrice();
 
         cart.push({
             id: product.id,
             title: product.title,
             price: finalPrice,
-            image: itemGambar,
+            image: product.imageUrl,
             quantity: 1
         });
 
         localStorage.setItem("cart", JSON.stringify(cart));
-
-        // Picu animasi centang hijau muncul
         setShowSuccessToast(true);
 
-        // Otomatis tutup modal setelah 1.8 detik kemesraan animasi centang
         setTimeout(() => {
             setShowSuccessToast(false);
             closeModal();
         }, 1800);
     };
 
-    // ✨ FUNGSI NYATA: Redirect Pesan Otomatis ke WhatsApp Toko Lu
     const handleBuyNow = () => {
         if (!product) return;
 
-        const phoneNumber = "6285600003750"; // Nomor WA Batik Nareswara lu
-        const finalPrice = product.discountPrice > 0 ? product.discountPrice : product.originalPrice;
+        const phoneNumber = "6285600003750";
+        const finalPrice = getFinalPrice();
 
         const message = `Halo *Batik Nareswara*, saya ingin membeli produk premium *${product.title}* seharga *Rp ${finalPrice.toLocaleString("id-ID")}*. Apakah produk ini ready?`;
 
@@ -139,8 +137,8 @@ function ModalContent({ params }: ContentProps) {
         closeModal();
     };
 
-    const activePrice = product ? (product.discountPrice || product.originalPrice || 0) : 0;
-    const primaryImageUrl = product ? (product.imageUrl || "/placeholder.jpg") : "/placeholder.jpg";
+    const activePrice = getFinalPrice();
+    const primaryImageUrl = product ? product.imageUrl : "/placeholder.jpg";
 
     return (
         <AnimatePresence>
@@ -151,12 +149,11 @@ function ModalContent({ params }: ContentProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={closeModal}
                     />
 
-                    {/* ✨ POP-UP CENTANG HIJAU PREMIUM (TOAST ANIMATION) */}
+                    {/* Pop-up Centang Hijau */}
                     <AnimatePresence>
                         {showSuccessToast && (
                             <motion.div
@@ -216,7 +213,7 @@ function ModalContent({ params }: ContentProps) {
                                         fill
                                         className="object-cover"
                                         priority
-                                        unoptimized={true} // Matikan Next Optimization biar ga loop eror 400 di localhost
+                                        unoptimized={true}
                                     />
                                 </div>
 
