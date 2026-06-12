@@ -109,12 +109,15 @@ else
 }
 
 // Rust image processor HTTP client + service registration (single instance)
-builder.Services.AddHttpClient("RustProcessor", client =>
-{
-    var rustUrl = builder.Configuration["RustService:Url"] ?? "http://localhost:8080";
-    client.BaseAddress = new Uri(rustUrl.TrimEnd('/'));
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddHttpClient(
+    "RustProcessor",
+    client =>
+    {
+        var rustUrl = builder.Configuration["RustService:Url"] ?? "http://localhost:8080";
+        client.BaseAddress = new Uri(rustUrl.TrimEnd('/'));
+        client.Timeout = TimeSpan.FromSeconds(30);
+    }
+);
 builder.Services.AddScoped<IImageCompressionService, RustImageCompressionService>();
 
 // Supabase Storage HttpClient: tolerate missing service role key by using anon key as fallback and skip auth if none present
@@ -670,9 +673,14 @@ admin.MapPost(
                     cancellationToken
                 );
 
-                var storagePath = $"products/{product.Id}/{FileValidation.GenerateSafeWebpFileName()}";
+                var storagePath =
+                    $"products/{product.Id}/{FileValidation.GenerateSafeWebpFileName()}";
                 using var uploadStream = new MemoryStream(webpBytes);
-                var publicUrl = await storage.UploadFileAsync(uploadStream, storagePath, "image/webp");
+                var publicUrl = await storage.UploadFileAsync(
+                    uploadStream,
+                    storagePath,
+                    "image/webp"
+                );
 
                 uploadedPaths.Add(storagePath);
 
@@ -894,7 +902,11 @@ app.Run("http://0.0.0.0:5000");
 // Image compression service types (MUST be placed after app.Run() to satisfy top-level statements)
 public interface IImageCompressionService
 {
-    Task<byte[]> CompressToWebpAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default);
+    Task<byte[]> CompressToWebpAsync(
+        Stream imageStream,
+        string fileName,
+        CancellationToken cancellationToken = default
+    );
 }
 
 public sealed class RustImageCompressionService : IImageCompressionService
@@ -902,16 +914,25 @@ public sealed class RustImageCompressionService : IImageCompressionService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RustImageCompressionService> _logger;
 
-    public RustImageCompressionService(IHttpClientFactory httpClientFactory, ILogger<RustImageCompressionService> logger)
+    public RustImageCompressionService(
+        IHttpClientFactory httpClientFactory,
+        ILogger<RustImageCompressionService> logger
+    )
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
-    public async Task<byte[]> CompressToWebpAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default)
+    public async Task<byte[]> CompressToWebpAsync(
+        Stream imageStream,
+        string fileName,
+        CancellationToken cancellationToken = default
+    )
     {
-        if (imageStream is null) throw new ArgumentNullException(nameof(imageStream));
-        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name is required.", nameof(fileName));
+        if (imageStream is null)
+            throw new ArgumentNullException(nameof(imageStream));
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException("File name is required.", nameof(fileName));
 
         await using var buffer = new MemoryStream();
         await imageStream.CopyToAsync(buffer, cancellationToken);
@@ -923,7 +944,9 @@ public sealed class RustImageCompressionService : IImageCompressionService
 
             using var content = new MultipartFormDataContent();
             using var imageContent = new ByteArrayContent(originalBytes);
-            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                "application/octet-stream"
+            );
             content.Add(imageContent, "image", fileName);
 
             var response = await client.PostAsync("/api/compress", content, cancellationToken);
@@ -931,14 +954,22 @@ public sealed class RustImageCompressionService : IImageCompressionService
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError("Rust image compression service returned {StatusCode} for {FileName}. Response body: {ResponseBody}", (int)response.StatusCode, fileName, body);
+                _logger.LogError(
+                    "Rust image compression service returned {StatusCode} for {FileName}. Response body: {ResponseBody}",
+                    (int)response.StatusCode,
+                    fileName,
+                    body
+                );
                 return originalBytes;
             }
 
             var compressed = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             if (compressed is null || compressed.Length == 0)
             {
-                _logger.LogWarning("Rust compression returned empty payload for {FileName}; falling back to original.", fileName);
+                _logger.LogWarning(
+                    "Rust compression returned empty payload for {FileName}; falling back to original.",
+                    fileName
+                );
                 return originalBytes;
             }
 
@@ -946,11 +977,16 @@ public sealed class RustImageCompressionService : IImageCompressionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to compress image {FileName} with RustProcessor. Falling back to original bytes.", fileName);
+            _logger.LogError(
+                ex,
+                "Failed to compress image {FileName} with RustProcessor. Falling back to original bytes.",
+                fileName
+            );
             return originalBytes;
         }
     }
 }
+
 // ════════════════════════════════════════════════════════════════════════
 
 [Table("products")]

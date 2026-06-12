@@ -204,12 +204,17 @@ export default function AdminPage() {
   };
 
   // ✅ KODE BARU: Kebal terhadap huruf besar/kecil dari .NET
-  const getTotalStock = (variants: any) => {
-    // Antisipasi jika .NET memulangkan nama 'Variants' (V besar) atau 'variants' (v kecil)
-    const actualVariants = variants || [];
-
+  const getTotalStock = (product: any) => {
+    if (!product) return 0;
+    // Scan all possible variations returned by .NET Entity Framework
+    const actualVariants = product.variants || 
+                           product.Variants || 
+                           product.productVariants || 
+                           product.ProductVariants || 
+                           product.product_variants || 
+                           [];
+                           
     return actualVariants.reduce((sum: number, v: any) => {
-      // Ambil nilai dari 'stock' atau 'Stock', jika dua-duanya gak ada pakai 0
       const stockValue = v.stock !== undefined ? v.stock : (v.Stock !== undefined ? v.Stock : 0);
       return sum + Number(stockValue);
     }, 0);
@@ -376,7 +381,7 @@ export default function AdminPage() {
                         {product.discountPrice > 0 ? formatRupiah(product.discountPrice) : '-'}
                       </td>
                       <td className="py-4 px-6 text-sm text-slate-500 text-center font-medium">
-                        {getTotalStock(product.variants || product.Variants)}
+                        {getTotalStock(product)}
                       </td>
                       <td className="py-4 px-6 text-sm text-right">
                         <button

@@ -6,7 +6,7 @@
       "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\README.md",
       "pinnedBy": "auto:spec",
       "note": "Project README",
-      "pinnedAt": 1781184180462,
+      "pinnedAt": 1781243836151,
       "auto": "spec",
       "role": "spec"
     },
@@ -14,11 +14,25 @@
       "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\.clerk\\.tmp\\README.md",
       "pinnedBy": "auto:spec",
       "note": "Project README (.clerk\\.tmp)",
-      "pinnedAt": 1781184180463,
+      "pinnedAt": 1781243836151,
       "auto": "spec",
       "role": "spec"
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\src\\app\\admin\\page.tsx",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781244132717,
+      "auto": "dwell",
+      "expiresAt": 1781247732717
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\backend\\Program.cs",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781244428789,
+      "auto": "recent-edit",
+      "expiresAt": 1781248028789
     }
   ],
   "skills": [],
-  "updatedAt": 1781192465200
+  "updatedAt": 1781244428789
 }
