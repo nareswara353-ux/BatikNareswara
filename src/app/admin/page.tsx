@@ -144,9 +144,15 @@ export default function AdminPage() {
         formData.append('ImageFile', imageFiles[0]);
       }
 
+      // 🔥 TRIK SAPU JAGAT: Kirim double format biar Model Binding .NET pasti jebol tembus!
       productForm.variants.forEach((v, index) => {
+        // 1. Format PascalCase (Bawaan standar C#)
         formData.append(`Variants[${index}].Size`, String(v.size));
         formData.append(`Variants[${index}].Stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
+
+        // 2. Format camelCase (Antisipasi jika .NET lu sensitif huruf kecil)
+        formData.append(`variants[${index}].size`, String(v.size));
+        formData.append(`variants[${index}].stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
       });
 
       const res = await fetch(`${API_URL}/admin/products`, {
