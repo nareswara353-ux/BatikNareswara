@@ -18,6 +18,7 @@ using BatikNareswara.Api.Features.Orders.Repositories;
 using BatikNareswara.Api.Features.Orders.Serialization;
 using BatikNareswara.Api.Features.Orders.Workers;
 using BatikNareswara.Api.Features.SemanticSearch;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -473,7 +474,7 @@ api.MapGet(
             p.DiscountPrice ?? 0,
             p.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
             p.Images.Where(i => !i.IsPrimary).Select(i => i.ImageUrl).ToList(),
-            p.Variants.Select(v => new VariantDto(v.Size, v.Stock)).ToList(),
+            p.Variants.Select(v => new VariantDto(v.Id, v.Size, v.Stock)).ToList(),
             p.CreatedAt
         )).ToListAsync();
 
@@ -504,6 +505,7 @@ admin.MapPost(
     "/products",
     async (
         HttpRequest request,
+        [FromForm] CreateProductRequest createRequest,
         AppDbContext db,
         SupabaseStorageService storage,
         IImageCompressionService compressor,
@@ -516,22 +518,17 @@ admin.MapPost(
             return Results.BadRequest(new { error = "Request must be multipart/form-data." });
         }
 
-        IFormCollection form;
-        try
-        {
-            form = await request.ReadFormAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to parse form data.");
-            return Results.BadRequest(new { error = "Malformed form data." });
-        }
+        var title = createRequest.Title?.Trim() ?? string.Empty;
+        var description = createRequest.Description?.Trim() ?? string.Empty;
+        var originalPriceRaw = createRequest.OriginalPrice.ToString(CultureInfo.InvariantCulture);
+        var discountPriceRaw = createRequest.DiscountPrice.ToString(CultureInfo.InvariantCulture);
+        var variants = createRequest.Variants ?? new List<VariantInput>();
 
-        var title = form["Title"].ToString().Trim();
-        var description = form["Description"].ToString().Trim();
-        var originalPriceRaw = form["OriginalPrice"].ToString();
-        var discountPriceRaw = form["DiscountPrice"].ToString();
-        var variantsJson = form["Variants"].ToString();
+        var imageFiles = createRequest.Images?.Where(file => file != null && file.Length > 0).ToList() ?? new List<IFormFile>();
+        if (createRequest.ImageFile is not null && createRequest.ImageFile.Length > 0)
+        {
+            imageFiles.Insert(0, createRequest.ImageFile);
+        }
 
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -563,12 +560,6 @@ admin.MapPost(
         )
         {
             discountPrice = 0m;
-        }
-
-        var imageFiles = form.Files.GetFiles("Images");
-        if (!imageFiles.Any())
-        {
-            imageFiles = form.Files;
         }
 
         if (!imageFiles.Any())
@@ -618,30 +609,9 @@ admin.MapPost(
             }
         }
 
-        var variants = new List<VariantInput>();
-        if (!string.IsNullOrWhiteSpace(variantsJson))
-        {
-            try
-            {
-                variants =
-                    JsonSerializer.Deserialize<List<VariantInput>>(
-                        variantsJson,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                    ) ?? new();
-            }
-            catch (JsonException)
-            {
-                return Results.BadRequest(
-                    new
-                    {
-                        error = "Variants must be a valid JSON array of { \"Size\": \"...\", \"Stock\": N } objects.",
-                    }
-                );
-            }
-        }
-
         await using var transaction = await db.Database.BeginTransactionAsync();
         var uploadedPaths = new List<string>();
+        var uploadedUrls = new List<string>();
 
         try
         {
@@ -650,6 +620,7 @@ admin.MapPost(
                 Id = Guid.NewGuid(),
                 Title = title,
                 Description = description,
+                Category = createRequest.Category?.Trim(),
                 OriginalPrice = originalPrice,
                 DiscountPrice = discountPrice,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -678,6 +649,7 @@ admin.MapPost(
                 );
 
                 uploadedPaths.Add(storagePath);
+                uploadedUrls.Add(publicUrl);
 
                 db.ProductImages.Add(
                     new ProductImage
@@ -697,7 +669,7 @@ admin.MapPost(
                 if (string.IsNullOrWhiteSpace(v.Size))
                     continue;
 
-                db.ProductVariants.Add(
+                product.Variants.Add(
                     new ProductVariant
                     {
                         Id = Guid.NewGuid(),
@@ -714,19 +686,23 @@ admin.MapPost(
             logger.LogInformation(
                 "Product {ProductId} created successfully with {ImageCount} images.",
                 product.Id,
-                uploadedPaths.Count
+                uploadedUrls.Count
             );
 
-            var createdProductData = new {
+            var createdProductData = new
+            {
                 Id = product.Id,
                 Title = product.Title,
                 Description = product.Description,
                 OriginalPrice = product.OriginalPrice,
                 DiscountPrice = product.DiscountPrice,
-                PrimaryImage = uploadedPaths.FirstOrDefault(),
-                GalleryImages = uploadedPaths.Skip(1).ToList(),
-                Variants = variants.Where(v => !string.IsNullOrWhiteSpace(v.Size)).Select(v => new { Size = v.Size, Stock = Math.Max(0, v.Stock) }).ToList(),
-                CreatedAt = product.CreatedAt
+                PrimaryImage = uploadedUrls.FirstOrDefault(),
+                GalleryImages = uploadedUrls.Skip(1).ToList(),
+                Variants = variants
+                    .Where(v => !string.IsNullOrWhiteSpace(v.Size))
+                    .Select(v => new { Id = Guid.NewGuid(), Size = v.Size, Stock = Math.Max(0, v.Stock) })
+                    .ToList(),
+                CreatedAt = product.CreatedAt,
             };
 
             return Results.Created($"/api/products/{product.Id}", createdProductData);
@@ -1191,17 +1167,44 @@ public sealed record ProductDto(
     DateTimeOffset CreatedAt
 );
 
-public sealed record VariantDto(string Size, int Stock);
+public sealed record VariantDto(Guid Id, string Size, int Stock);
 
 public sealed record StoryDto(Guid Id, string MediaUrl, string? Caption, DateTimeOffset CreatedAt);
 
-public sealed record VariantInput
+public sealed class CreateProductRequest
+{
+    [FromForm(Name = "Title")]
+    public string Title { get; set; } = string.Empty;
+
+    [FromForm(Name = "Description")]
+    public string Description { get; set; } = string.Empty;
+
+    [FromForm(Name = "Category")]
+    public string? Category { get; set; }
+
+    [FromForm(Name = "OriginalPrice")]
+    public decimal OriginalPrice { get; set; }
+
+    [FromForm(Name = "DiscountPrice")]
+    public decimal DiscountPrice { get; set; }
+
+    [FromForm(Name = "ImageFile")]
+    public IFormFile? ImageFile { get; set; }
+
+    [FromForm(Name = "images")]
+    public List<IFormFile>? Images { get; set; }
+
+    [FromForm(Name = "Variants")]
+    public List<VariantInput> Variants { get; set; } = new();
+}
+
+public sealed class VariantInput
 {
     [JsonPropertyName("Size")]
-    public string Size { get; init; } = string.Empty;
+    public string Size { get; set; } = string.Empty;
 
     [JsonPropertyName("Stock")]
-    public int Stock { get; init; }
+    public int Stock { get; set; }
 }
 
 public static class FileValidation
