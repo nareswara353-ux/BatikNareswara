@@ -51,7 +51,7 @@ function ModalContent({ params }: ContentProps) {
                 
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
                 // Mengambil list catalog agar data varian ter-include sempurna tanpa risiko rute tunggal 404
-                const response = await fetch(`${apiUrl}/admin/products`);
+                const response = await fetch(`${apiUrl}/products`);
                 
                 if (!response.ok) {
                     throw new Error("Gagal memuat data katalog.");
