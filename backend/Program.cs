@@ -31,40 +31,14 @@ using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// CORS: allow common dev origins, with optional broad allow in development via env DEV_ALLOW_ANY_ORIGIN=true
-var allowedOrigins = new List<string> { "http://localhost:5173", "http://localhost:3000" };
-var extraOrigin =
-    builder.Configuration["NEXT_PUBLIC_ORIGIN"]
-    ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_ORIGIN");
-if (!string.IsNullOrEmpty(extraOrigin))
-    allowedOrigins.Add(extraOrigin);
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(
-        "AllowFrontend",
-        policy =>
-        {
-            var allowAny =
-                builder.Environment.IsDevelopment()
-                && (
-                    builder.Configuration["DEV_ALLOW_ANY_ORIGIN"] == "true"
-                    || Environment.GetEnvironmentVariable("DEV_ALLOW_ANY_ORIGIN") == "true"
-                );
-            if (allowAny)
-            {
-                policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-            }
-            else
-            {
-                policy
-                    .WithOrigins(allowedOrigins.ToArray())
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            }
-        }
-    );
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 // Configure Kestrel port from environment (PORT) or default to 5000 in dev to avoid needing admin for port 80
@@ -214,20 +188,8 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options =>
     options.Level = CompressionLevel.Fastest
 );
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("BatikNareswaraPolicy", policy =>
-    {
-        policy.AllowAnyOrigin()   // Mengizinkan asal muasal dari port mana pun (termasuk 3000)
-              .AllowAnyMethod()   // Mengizinkan GET, POST, PUT, DELETE
-              .AllowAnyHeader();  // Mengizinkan semua jenis header kiriman
-    });
-});
-
 // ── Build ──
 var app = builder.Build();
-
-app.UseCors("AllowFrontend");
 
 // ── 🛠️ ROBUST DATABASE INIT: DNS CHECK + RETRIES (MENANGKAP "No such host is known") ──
 using (var scope = app.Services.CreateScope())
@@ -405,7 +367,38 @@ using (var scope = app.Services.CreateScope())
 
 // ── Middleware pipeline (order matters) ──
 app.UseResponseCompression();
-app.UseCors("AllowFrontend");
+app.UseRouting();
+app.UseCors("AllowAll");
+
+// Ensure CORS headers are attached to every response, including 400/404/500 payloads.
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        }
+
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
+        context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+
+        throw;
+    }
+
+    if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+    {
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
+        context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+    }
+});
 
 // Security headers middleware
 app.Use(
@@ -885,7 +878,6 @@ api.MapGet(
     }
 );
 
-app.UseCors("BatikNareswaraPolicy");
 app.UseAuthorization();
 
 // Map Controllers for Semantic Search
