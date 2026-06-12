@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+
+const FALLBACK_SVG_BASE64 =
+    "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
 
 interface ProductVariant {
     id?: string | number;
@@ -53,26 +55,31 @@ function ModalContent({ params }: ContentProps) {
                 setError(null);
 
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-                // Gunakan endpoint admin agar varian yang di-include .NET terbaca sempurna
-                const response = await fetch(`${apiUrl}/products`);
+                
+                // Gunakan endpoint admin agar varian yang di-include .NET terbaca sempurna, fallback ke /products
+                let response = await fetch(`${apiUrl}/admin/products`).catch(() => null);
+                if (!response || !response.ok) {
+                    response = await fetch(`${apiUrl}/products`);
+                }
 
                 if (!response.ok) {
                     throw new Error("Gagal memuat katalog batik.");
                 }
 
                 const data = await response.json();
-                const productList = Array.isArray(data) ? data : (data.data || []);
+                const productList: unknown[] = Array.isArray(data) ? data : ((data as Record<string, unknown>).data as unknown[] || []);
 
-                const foundProduct = productList.find((p: any) =>
-                    String(p.id || p.Id) === String(unwrappedParams.id)
-                );
+                const foundProduct = productList.find((raw: unknown) => {
+                    const p = raw as Record<string, unknown>;
+                    return String(p.id || p.Id) === String(unwrappedParams.id);
+                }) as Record<string, unknown> | undefined;
 
                 if (foundProduct) {
                     // Ambil array varian seaman mungkin dari segala macam ejaan .NET
-                    const rawVariants = foundProduct.variants || foundProduct.Variants || foundProduct.productVariants || foundProduct.ProductVariants || [];
-                    const mappedVariants = rawVariants.map((v: any) => ({
-                        id: v.id || v.Id,
-                        size: v.size || v.Size || "All Size",
+                    const rawVariants = (foundProduct.variants || foundProduct.Variants || foundProduct.productVariants || foundProduct.ProductVariants || []) as Record<string, unknown>[];
+                    const mappedVariants: ProductVariant[] = rawVariants.map((v: Record<string, unknown>) => ({
+                        id: (v.id as string | number | undefined) ?? (v.Id as string | number | undefined),
+                        size: String(v.size || v.Size || "All Size"),
                         stock: v.stock !== undefined ? Number(v.stock) : Number(v.Stock || 0)
                     }));
 
@@ -82,20 +89,21 @@ function ModalContent({ params }: ContentProps) {
                         description: String(foundProduct.description || foundProduct.Description || ""),
                         originalPrice: Number(foundProduct.originalPrice || foundProduct.OriginalPrice || 0),
                         discountPrice: Number(foundProduct.discountPrice || foundProduct.DiscountPrice || 0),
-                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg"),
+                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || foundProduct.primaryImage || foundProduct.PrimaryImage || ""),
                         variants: mappedVariants
                     });
 
                     // Set default ukuran pertama yang stoknya masih tersedia
-                    const availableSize = mappedVariants.find((v: any) => v.stock > 0);
+                    const availableSize = mappedVariants.find((v: ProductVariant) => v.stock > 0);
                     if (availableSize) {
                         setSelectedSize(availableSize.size);
                     }
                 } else {
                     throw new Error("Produk tidak ditemukan.");
                 }
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                setError(message);
             } finally {
                 setIsLoading(false);
             }
@@ -191,7 +199,12 @@ function ModalContent({ params }: ContentProps) {
                         ) : (
                             <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-6 no-scrollbar">
                                 <div className="w-full max-w-sm mx-auto aspect-[3/4] relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
-                                    <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+                                    <img 
+                                        src={product.imageUrl || FALLBACK_SVG_BASE64} 
+                                        alt={product.title} 
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { e.currentTarget.src = FALLBACK_SVG_BASE64; }}
+                                    />
                                 </div>
 
                                 <div>

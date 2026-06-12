@@ -10,6 +10,13 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- Inline Base64 Fallback SVG (prevents any additional network requests) ---
+const FALLBACK_SVG_BASE64 =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+
+const FALLBACK_PROFILE_SVG_BASE64 =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iOCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrIE5hcmVzd2FyYTwvdGV4dD48L3N2Zz4=";
+
 // --- Type Definitions ---
 interface ProductVariant {
   id?: string | number;
@@ -28,8 +35,9 @@ interface Product {
   category?: string;
   image?: string;
   imageUrl?: string;
+  primaryImage?: string;
   variants?: ProductVariant[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function AdminPage() {
@@ -59,20 +67,61 @@ export default function AdminPage() {
     fetchProducts();
   }, []);
 
-  // ✅ KODE ADMIN BARU: Ambil langsung dari rute khusus admin agar .Include bekerja
+  // ✅ ADMIN FETCH: Try /admin/products first (eager-loaded variants), fallback to /products
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      // Ganti dari `${API_URL}/products` menjadi rute admin asli di bawah ini:
-      const res = await fetch(`${API_URL}/admin/products`);
+
+      // Primary: admin endpoint with .Include(p => p.Variants) eager loading
+      let res = await fetch(`${API_URL}/admin/products`).catch(() => null);
+
+      // Fallback: public products endpoint (also returns variants via DTO projection)
+      if (!res || !res.ok) {
+        res = await fetch(`${API_URL}/products`);
+      }
+
       if (!res.ok) {
         throw new Error(`Failed to fetch products: ${res.statusText}`);
       }
+
       const data = await res.json();
-      setProducts(data);
-    } catch (err: any) {
-      console.warn("Server offline, menggunakan data simulasi Batik Nareswara.", err.message);
+      const productList: unknown[] = Array.isArray(data) ? data : (data as Record<string, unknown>).data as unknown[] || [];
+
+      // Map defensively to normalize DTO field names from .NET (camelCase)
+      const mapped: Product[] = productList.map((raw: unknown) => {
+        const p = raw as Record<string, unknown>;
+        // Extract variants from all possible EF Core casing patterns
+        const rawVariants = (p.variants || p.Variants || p.productVariants || p.ProductVariants || []) as Record<string, unknown>[];
+        const variants: ProductVariant[] = rawVariants.map((v: Record<string, unknown>) => ({
+          id: v.id as string | number | undefined ?? v.Id as string | number | undefined,
+          size: (v.size as string || v.Size as string || 'All Size'),
+          stock: v.stock !== undefined ? Number(v.stock) : Number(v.Stock || 0),
+        }));
+
+        // Resolve image: DTO uses 'primaryImage', raw entity might use 'imageUrl' or 'image'
+        const imageUrl = (p.primaryImage || p.PrimaryImage || p.imageUrl || p.ImageUrl || p.image || p.Image || '') as string;
+
+        return {
+          id: String(p.id || p.Id || ''),
+          title: String(p.title || p.Title || 'Untitled'),
+          description: String(p.description || p.Description || ''),
+          originalPrice: Number(p.originalPrice || p.OriginalPrice || 0),
+          discountPrice: Number(p.discountPrice || p.DiscountPrice || 0),
+          price: Number(p.price || p.Price || 0),
+          stock: Number(p.stock || p.Stock || 0),
+          category: String(p.category || p.Category || ''),
+          imageUrl: imageUrl,
+          primaryImage: imageUrl,
+          image: imageUrl,
+          variants: variants,
+        };
+      });
+
+      setProducts(mapped);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn("Server offline, menggunakan data simulasi Batik Nareswara.", message);
       setError('Koneksi ke server gagal. Menggunakan data simulasi (dummy).');
 
       // Data dummy SSS-Grade: 100% kontrak komponen hilir terpenuhi
@@ -86,9 +135,9 @@ export default function AdminPage() {
           stock: 12,
           category: "Kebaya",
           description: "Batik kualitas premium sutra asli Nareswara",
-          // Dual-shield gambar untuk antisipasi crash defaultLoader Next/Image
           image: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?q=80&w=600",
           imageUrl: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?q=80&w=600",
+          primaryImage: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?q=80&w=600",
           variants: [
             { id: 'v1', size: 'Standard', stock: 12 }
           ]
@@ -110,8 +159,9 @@ export default function AdminPage() {
         throw new Error(`Failed to delete product: ${res.statusText}`);
       }
       setProducts((prev) => prev.filter((p) => p.id !== id));
-    } catch (err: any) {
-      console.warn('Failed to delete product in backend:', err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Failed to delete product in backend:', message);
       // Fallback: hapus data di UI untuk demo
       setProducts((prev) => prev.filter((p) => p.id !== id));
       alert('Mode Offline: Produk dihapus dari tampilan.');
@@ -170,8 +220,9 @@ export default function AdminPage() {
       setProducts((prev) => [...prev, newProduct]);
       form.reset();
       alert('Product created successfully.');
-    } catch (err: any) {
-      console.warn('Failed to create product in backend:', err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Failed to create product in backend:', message);
       alert('Mode Offline: Tidak dapat menambahkan produk ke server.');
     } finally {
       setIsSubmittingProduct(false);
@@ -196,26 +247,30 @@ export default function AdminPage() {
 
       form.reset();
       alert('Story published successfully.');
-    } catch (err: any) {
-      console.warn('Failed to publish story:', err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Failed to publish story:', message);
       alert('Mode Offline: Tidak dapat mempublikasi story ke server.');
     } finally {
       setIsSubmittingStory(false);
     }
   };
 
-  // ✅ KODE BARU: Kebal terhadap huruf besar/kecil dari .NET
-  const getTotalStock = (product: any) => {
+  // ✅ Case-insensitive stock calculator: covers all EF Core property naming variants
+  const getTotalStock = (product: Record<string, unknown>): number => {
     if (!product) return 0;
-    // Scan all possible variations returned by .NET Entity Framework
-    const actualVariants = product.variants ||
+
+    // Scan all possible property name variations returned by .NET Entity Framework
+    const actualVariants = (
+      product.variants ||
       product.Variants ||
       product.productVariants ||
       product.ProductVariants ||
       product.product_variants ||
-      [];
+      []
+    ) as Record<string, unknown>[];
 
-    return actualVariants.reduce((sum: number, v: any) => {
+    return actualVariants.reduce((sum: number, v: Record<string, unknown>) => {
       const stockValue = v.stock !== undefined ? v.stock : (v.Stock !== undefined ? v.Stock : 0);
       return sum + Number(stockValue);
     }, 0);
@@ -224,6 +279,14 @@ export default function AdminPage() {
   const formatRupiah = (value: number) => {
     if (isNaN(value)) return '-';
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+  };
+
+  /**
+   * Resolves the best available product image URL.
+   * Falls back to an inline SVG to prevent any network 400 errors.
+   */
+  const getProductImage = (product: Product): string => {
+    return product.primaryImage || product.imageUrl || product.image || FALLBACK_SVG_BASE64;
   };
 
   return (
@@ -239,7 +302,7 @@ export default function AdminPage() {
                 alt="Batik Nareswara Profile"
                 className="absolute inset-0 w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iOCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrIE5hcmVzd2FyYTwvdGV4dD48L3N2Zz4=";
+                  e.currentTarget.src = FALLBACK_PROFILE_SVG_BASE64;
                 }}
               />
             </div>
@@ -357,15 +420,15 @@ export default function AdminPage() {
                 ) : (
                   products.map((product) => (
                     <tr key={product.id} className="hover:bg-slate-50 transition-colors">
-                      {/* 📸 KOLOM GAMBAR PRODUK BARU (ANTI-CRASH) */}
+                      {/* 📸 KOLOM GAMBAR PRODUK (ANTI-CRASH, native <img>) */}
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
                           <img
-                            src={product.imageUrl || product.image || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
+                            src={getProductImage(product)}
                             alt={product.title || "Gambar Produk"}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
+                              e.currentTarget.src = FALLBACK_SVG_BASE64;
                             }}
                           />
                         </div>
@@ -377,7 +440,7 @@ export default function AdminPage() {
                         {product.discountPrice > 0 ? formatRupiah(product.discountPrice) : '-'}
                       </td>
                       <td className="py-4 px-6 text-sm text-slate-500 text-center font-medium">
-                        {getTotalStock(product)}
+                        {getTotalStock(product as unknown as Record<string, unknown>)}
                       </td>
                       <td className="py-4 px-6 text-sm text-right">
                         <button
