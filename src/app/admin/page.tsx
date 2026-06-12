@@ -97,7 +97,7 @@ export default function AdminPage() {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const res = await fetch(`${API_URL}/admin/products/${id}`, {
+      const res = await fetch(`${API_URL}/products/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
@@ -155,7 +155,7 @@ export default function AdminPage() {
         formData.append(`variants[${index}].stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
       });
 
-      const res = await fetch(`${API_URL}/admin/products`, {
+      const res = await fetch(`${API_URL}/products`, {
         method: 'POST',
         body: formData,
       });
