@@ -61,8 +61,8 @@ export default function AdminPage() {
     try {
       setIsLoading(true);
       setError(null);
-      // 🔥 FIX ENDPOINT: Diubah ke /admin/products agar data Include(Variants) terpanggil sempurna
-      const res = await fetch(`${API_URL}/admin/products`);
+      // ✅ BALIKIN KE RUTE ASLI: Karena rute /api/products sekarang sudah kebal eror loop
+      const res = await fetch(`${API_URL}/products`);
       if (!res.ok) {
         throw new Error(`Failed to fetch products: ${res.statusText}`);
       }
@@ -71,6 +71,7 @@ export default function AdminPage() {
     } catch (err: any) {
       console.warn("Server offline, menggunakan data simulasi Batik Nareswara.", err.message);
       setError('Koneksi ke server gagal. Menggunakan data simulasi (dummy).');
+      
 
       setProducts([
         {
