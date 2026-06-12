@@ -24,8 +24,15 @@
       "pinnedAt": 1781244132717,
       "auto": "dwell",
       "expiresAt": 1781247732717
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\backend\\Program.cs",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781245963655,
+      "auto": "recent-edit",
+      "expiresAt": 1781249563655
     }
   ],
   "skills": [],
-  "updatedAt": 1781245713917
+  "updatedAt": 1781245963655
 }

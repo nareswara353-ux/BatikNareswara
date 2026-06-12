@@ -158,7 +158,19 @@ builder.Services.AddSingleton<SupabaseStorageService>();
 // ── Semantic Search (Gemini) ──
 builder.Services.AddHttpClient<IGeminiEmbeddingService, GeminiEmbeddingService>();
 builder.Services.AddScoped<IProductSemanticRepository, ProductSemanticRepository>();
-builder.Services.AddControllers();
+
+// ✅ KODE BARU: Mengizinkan data varian dibaca tanpa bikin server pusing muter-muter
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System
+            .Text
+            .Json
+            .Serialization
+            .ReferenceHandler
+            .IgnoreCycles;
+    });
 
 // ── Transactional Outbox Pattern (CQRS + Background Worker) ──
 // Register order/outbox handlers conditionally: use production (SQL + background worker) only when USE_PROD_DB=true
