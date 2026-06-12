@@ -59,20 +59,19 @@ export default function AdminPage() {
     fetchProducts();
   }, []);
 
+  // ✅ KODE ADMIN BARU: Ambil langsung dari rute khusus admin agar .Include bekerja
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await fetch(`${API_URL}/products`);
+      // Ganti dari `${API_URL}/products` menjadi rute admin asli di bawah ini:
+      const res = await fetch(`${API_URL}/admin/products`);
       if (!res.ok) {
         throw new Error(`Failed to fetch products: ${res.statusText}`);
       }
       const data = await res.json();
-      // Defensive: handle both raw array and { data: [...] } wrapper from .NET
-      const parsed = Array.isArray(data) ? data : (data?.data || data?.$values || []);
-      setProducts(Array.isArray(parsed) ? parsed : []);
+      setProducts(data);
     } catch (err: any) {
-      // 🚨 KUNCI UTAMA: Gunakan console.warn agar development overlay tidak muncul (bukan console.error)
       console.warn("Server offline, menggunakan data simulasi Batik Nareswara.", err.message);
       setError('Koneksi ke server gagal. Menggunakan data simulasi (dummy).');
 
@@ -366,7 +365,6 @@ export default function AdminPage() {
                             alt={product.title || "Gambar Produk"}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              // Jika link gambar dari Supabase/Unsplash rusak, langsung suntik SVG internal tanpa request HTTP
                               e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg==";
                             }}
                           />

@@ -159,18 +159,19 @@ builder.Services.AddSingleton<SupabaseStorageService>();
 builder.Services.AddHttpClient<IGeminiEmbeddingService, GeminiEmbeddingService>();
 builder.Services.AddScoped<IProductSemanticRepository, ProductSemanticRepository>();
 
-// ✅ KODE BARU: Mengizinkan data varian dibaca tanpa bikin server pusing muter-muter
-builder
-    .Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = System
-            .Text
-            .Json
-            .Serialization
-            .ReferenceHandler
-            .IgnoreCycles;
-    });
+// Fix for MVC Controllers
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+});
+
+// Fix for Minimal APIs (MapGet, MapPost, etc.)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+});
 
 // ── Transactional Outbox Pattern (CQRS + Background Worker) ──
 // Register order/outbox handlers conditionally: use production (SQL + background worker) only when USE_PROD_DB=true
@@ -462,36 +463,19 @@ api.MapGet(
             _ => query.OrderByDescending(p => p.CreatedAt), // Default urutan terbaru
         };
 
-        // 5. Eksekusi query ke database Supabase (Lengkap dengan data varian/stok)
-        var products = await query.Include(p => p.Variants).ToListAsync();
-        // 6. Transformasi ke format DTO yang dimengerti Next.js
-        var dtos = products
-            .Select(p =>
-            {
-                var primaryImage =
-                    p.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault()
-                    ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault();
-
-                var galleryImages = p
-                    .Images.Where(i => !i.IsPrimary)
-                    .Select(i => i.ImageUrl)
-                    .ToList();
-
-                var variants = p.Variants.Select(v => new VariantDto(v.Size, v.Stock)).ToList();
-
-                return new ProductDto(
-                    Id: p.Id,
-                    Title: p.Title,
-                    Description: p.Description ?? "",
-                    OriginalPrice: p.OriginalPrice,
-                    DiscountPrice: p.DiscountPrice ?? 0,
-                    PrimaryImage: primaryImage,
-                    GalleryImages: galleryImages,
-                    Variants: variants,
-                    CreatedAt: p.CreatedAt
-                );
-            })
-            .ToList();
+        // 5. Eksekusi query dan transformasi secara eksplisit (DTO Projection) 
+        // untuk memutus siklus JSON dan mencegah circular references di serializer
+        var dtos = await query.Select(p => new ProductDto(
+            p.Id,
+            p.Title,
+            p.Description ?? "",
+            p.OriginalPrice,
+            p.DiscountPrice ?? 0,
+            p.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+            p.Images.Where(i => !i.IsPrimary).Select(i => i.ImageUrl).ToList(),
+            p.Variants.Select(v => new VariantDto(v.Size, v.Stock)).ToList(),
+            p.CreatedAt
+        )).ToListAsync();
 
         return Results.Ok(dtos);
     }
@@ -733,7 +717,19 @@ admin.MapPost(
                 uploadedPaths.Count
             );
 
-            return Results.Created($"/api/products/{product.Id}", new { id = product.Id });
+            var createdProductData = new {
+                Id = product.Id,
+                Title = product.Title,
+                Description = product.Description,
+                OriginalPrice = product.OriginalPrice,
+                DiscountPrice = product.DiscountPrice,
+                PrimaryImage = uploadedPaths.FirstOrDefault(),
+                GalleryImages = uploadedPaths.Skip(1).ToList(),
+                Variants = variants.Where(v => !string.IsNullOrWhiteSpace(v.Size)).Select(v => new { Size = v.Size, Stock = Math.Max(0, v.Stock) }).ToList(),
+                CreatedAt = product.CreatedAt
+            };
+
+            return Results.Created($"/api/products/{product.Id}", createdProductData);
         }
         catch (Exception ex)
         {

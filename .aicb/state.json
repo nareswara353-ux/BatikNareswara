@@ -24,8 +24,15 @@
       "pinnedAt": 1781246249617,
       "auto": "dwell",
       "expiresAt": 1781249849617
+    },
+    {
+      "path": "c:\\Users\\ThinkPad\\Documents\\GitHub\\BatikNareswara\\src\\app\\admin\\page.tsx",
+      "pinnedBy": "auto:editor",
+      "pinnedAt": 1781249119614,
+      "auto": "dwell",
+      "expiresAt": 1781252719614
     }
   ],
   "skills": [],
-  "updatedAt": 1781247292944
+  "updatedAt": 1781249119614
 }
