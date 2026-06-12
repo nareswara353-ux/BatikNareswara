@@ -214,6 +214,16 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options =>
     options.Level = CompressionLevel.Fastest
 );
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("BatikNareswaraPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()   // Mengizinkan asal muasal dari port mana pun (termasuk 3000)
+              .AllowAnyMethod()   // Mengizinkan GET, POST, PUT, DELETE
+              .AllowAnyHeader();  // Mengizinkan semua jenis header kiriman
+    });
+});
+
 // ── Build ──
 var app = builder.Build();
 
@@ -874,6 +884,9 @@ api.MapGet(
         }
     }
 );
+
+app.UseCors("BatikNareswaraPolicy");
+app.UseAuthorization();
 
 // Map Controllers for Semantic Search
 app.MapControllers();
