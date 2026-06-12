@@ -50,7 +50,6 @@ function ModalContent({ params }: ContentProps) {
                 setError(null);
                 
                 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-                // Mengambil list catalog agar data varian ter-include sempurna tanpa risiko rute tunggal 404
                 const response = await fetch(`${apiUrl}/products`);
                 
                 if (!response.ok) {
@@ -72,23 +71,31 @@ function ModalContent({ params }: ContentProps) {
                         stock: v.stock !== undefined ? Number(v.stock) : Number(v.Stock || 0)
                     }));
 
+                    // 🛠️ ABSOLUTE IMAGE PATH LOGIC: Mengubah path lokal backend menjadi URL utuh agar tidak blank
+                    let rawImg = foundProduct.imageUrl || foundProduct.image || "";
+                    if (rawImg && !rawImg.startsWith("http") && !rawImg.startsWith("data:")) {
+                        const backendHost = apiUrl.replace("/api", ""); // Menghasilkan http://localhost:5000
+                        rawImg = `${backendHost}${rawImg.startsWith("/") ? "" : "/"}${rawImg}`;
+                    } else if (!rawImg) {
+                        rawImg = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48L3N2Zz4=";
+                    }
+
                     setProduct({
                         id: String(foundProduct.id || foundProduct.Id || ""),
                         title: String(foundProduct.title || foundProduct.Title || "Batik Premium"),
                         description: String(foundProduct.description || foundProduct.Description || ""),
                         originalPrice: Number(foundProduct.originalPrice || foundProduct.OriginalPrice || 0),
                         discountPrice: Number(foundProduct.discountPrice || foundProduct.DiscountPrice || 0),
-                        imageUrl: String(foundProduct.imageUrl || foundProduct.image || foundProduct.imageUrls?.[0] || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48L3N2Zz4="),
+                        imageUrl: rawImg,
                         variants: mappedVariants
                     });
 
-                    // Auto-select ukuran pertama yang punya stok ready
                     const firstAvailable = mappedVariants.find((v: any) => v.stock > 0);
                     if (firstAvailable) {
                         setSelectedSize(firstAvailable.size);
                     }
                 } else {
-                    throw new Error("Produk tidak ditemukan di sistem katalog.");
+                    throw new Error("Produk tidak ditemukan di sistem.");
                 }
             } catch (err: any) {
                 setError(err.message || "Terjadi kesalahan.");
@@ -157,7 +164,7 @@ function ModalContent({ params }: ContentProps) {
                 <div className="fixed inset-0 z-[200] flex items-end justify-center">
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
 
-                    {/* Toast Sukses Centang Hijau Premium */}
+                    {/* Toast Sukses Centang Hijau */}
                     <AnimatePresence>
                         {showSuccessToast && (
                             <motion.div initial={{ opacity: 0, scale: 0.8, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8, y: -20 }} className="absolute top-10 z-[300] bg-emerald-500 text-white font-semibold px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 border border-emerald-400">
@@ -169,7 +176,7 @@ function ModalContent({ params }: ContentProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* Sheet Container */}
+                    {/* Modal Container */}
                     <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-2xl bg-white rounded-t-3xl h-[85vh] flex flex-col shadow-2xl">
                         <div className="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center rounded-t-3xl shrink-0">
                             <h2 className="font-bold text-lg text-slate-800">Detail Produk</h2>
@@ -186,7 +193,7 @@ function ModalContent({ params }: ContentProps) {
                             <div className="p-6 flex-1 flex flex-col items-center justify-center text-center gap-4"><h3 className="text-xl font-bold text-slate-800">Produk Tidak Ditemukan</h3></div>
                         ) : (
                             <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-6 no-scrollbar">
-                                <div className="w-full max-w-sm mx-auto aspect-[3/4] relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
+                                <div className="w-full max-w-sm mx-auto aspect-[3/4] relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 flex items-center justify-center">
                                     <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48L3N2Zz4="; }} />
                                 </div>
 
@@ -195,7 +202,7 @@ function ModalContent({ params }: ContentProps) {
                                     <p className="text-2xl text-[#D2691E] font-bold mt-1">Rp {activePrice.toLocaleString("id-ID")}</p>
                                 </div>
 
-                                {/* ✨ SEKTOR BARU: UI PILIHAN UKURAN BAJU DARI DATABASE ADMIN */}
+                                {/* UI UKURAN BAJU */}
                                 <div>
                                     <h3 className="font-bold text-xs text-slate-800 mb-2">Pilih Ukuran Batik:</h3>
                                     <div className="flex flex-wrap gap-2">
