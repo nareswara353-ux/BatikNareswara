@@ -450,9 +450,8 @@ api.MapGet(
             _ => query.OrderByDescending(p => p.CreatedAt), // Default urutan terbaru
         };
 
-        // 5. Eksekusi query ke database Supabase
-        var products = await query.ToListAsync();
-
+        // 5. Eksekusi query ke database Supabase (Lengkap dengan data varian/stok)
+        var products = await query.Include(p => p.Variants).ToListAsync();
         // 6. Transformasi ke format DTO yang dimengerti Next.js
         var dtos = products
             .Select(p =>
