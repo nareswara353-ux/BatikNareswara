@@ -86,7 +86,7 @@ function ModalContent({ params }: ContentProps) {
                         description: String(foundProduct.description || foundProduct.Description || ""),
                         originalPrice: Number(foundProduct.originalPrice || foundProduct.OriginalPrice || 0),
                         discountPrice: Number(foundProduct.discountPrice || foundProduct.DiscountPrice || 0),
-                        imageUrl: rawImg,
+                        imageUrl: String(foundProduct.primaryImage || foundProduct.imageUrl || foundProduct.image || "/placeholder.jpg"),
                         variants: mappedVariants
                     });
 
