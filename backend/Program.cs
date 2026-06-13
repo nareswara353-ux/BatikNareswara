@@ -41,6 +41,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddAntiforgery();
+
 // Configure Kestrel port from environment (PORT) or default to 5000 in dev to avoid needing admin for port 80
 var portFromEnv = Environment.GetEnvironmentVariable("PORT") ?? builder.Configuration["PORT"];
 if (int.TryParse(portFromEnv, out var portNum))
@@ -727,7 +729,7 @@ admin.MapPost(
             );
         }
     }
-);
+).DisableAntiforgery();
 
 //  DELETE /api/admin/products/{id}
 admin.MapDelete(
@@ -880,6 +882,8 @@ api.MapGet(
 
 app.UseAuthorization();
 
+
+app.UseAntiforgery();
 // Map Controllers for Semantic Search
 app.MapControllers();
 
