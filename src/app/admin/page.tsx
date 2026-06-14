@@ -155,7 +155,7 @@ export default function AdminPage() {
         formData.append(`variants[${index}].stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
       });
 
-      const res = await fetch(`${API_URL}/products`, {
+      const res = await fetch(`${API_URL}/admin/products`, {
         method: 'POST',
         body: formData,
       });

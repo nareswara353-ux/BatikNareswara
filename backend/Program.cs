@@ -387,33 +387,32 @@ app.Use(async (context, next) =>
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         }
 
-        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
-        context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
-        context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+        // ✅ Sekarang pake properti langsung (.AccessControl...) biar warning ASP0015 hilang total!
+        context.Response.Headers.AccessControlAllowOrigin = "*";
+        context.Response.Headers.AccessControlAllowMethods = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
+        context.Response.Headers.AccessControlAllowHeaders = "*";
 
         throw;
     }
 
-    if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+    if (string.IsNullOrEmpty(context.Response.Headers.AccessControlAllowOrigin))
     {
-        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
-        context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
-        context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+        context.Response.Headers.AccessControlAllowOrigin = "*";
+        context.Response.Headers.AccessControlAllowMethods = "GET,POST,PUT,DELETE,OPTIONS,PATCH";
+        context.Response.Headers.AccessControlAllowHeaders = "*";
     }
 });
 
 // Security headers middleware
-app.Use(
-    async (context, next) =>
-    {
-        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-        context.Response.Headers["X-Frame-Options"] = "DENY";
-        context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-        context.Response.Headers["X-XSS-Protection"] = "0";
-        await next();
-    }
-);
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    context.Response.Headers["X-XSS-Protection"] = "0";
+    await next();
+}); 
 
 // ────────────────────────────────────────────────────────────────────────
 //  2. ENDPOINT DEFINITIONS
