@@ -149,10 +149,6 @@ export default function AdminPage() {
         // 1. Format PascalCase (Bawaan standar C#)
         formData.append(`Variants[${index}].Size`, String(v.size));
         formData.append(`Variants[${index}].Stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
-
-        // 2. Format camelCase (Antisipasi jika .NET lu sensitif huruf kecil)
-        formData.append(`variants[${index}].size`, String(v.size));
-        formData.append(`variants[${index}].stock`, String(parseInt((v.stock || 0).toString(), 10) || 0));
       });
 
       const res = await fetch(`${API_URL}/admin/products`, {
@@ -294,7 +290,7 @@ export default function AdminPage() {
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center shadow-sm">
                           <img
-                            src={product.imageUrl || product.image || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
+                            src={product.primaryImage || product.PrimaryImage || product.imageUrl || product.image || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMWY1ZjkiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJhdGlrPC90ZXh0Pjwvc3ZnPg=="}
                             alt={product.title || "Batik"}
                             className="w-full h-full object-cover"
                             onError={(e) => {
